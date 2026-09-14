@@ -90,7 +90,7 @@ if __name__ == "__main__":
     print(f"{'Algoritmo':^16} {f"N":^16} {f"Tempo":^16}")
     print("-" * 64)
     
-    for i in [50, 100, 500, 1000, 5000]:
+    for i in [50, 100, 500, 1000, 2000]:
         print(f"{'Selection Sort':^16} {f"{i}":^16} {f"{mediaTempo(i, instanciaAleatoria, ord.selection_sort):.5f}s":^16}")
         print(f"{'Merge Sort':^16} {f"{i}":^16} {f"{mediaTempo(i, instanciaAleatoria, ord.divide_and_conquer_sort):.5f}s":^16}")
         print(f"{'Quick Sort':^16} {f"{i}":^16} {f"{mediaTempo(i, instanciaAleatoria, ord.quick_sort):.5f}s":^16}")
@@ -102,7 +102,7 @@ if __name__ == "__main__":
     print(f"{'Algoritmo':^16} {f"N":^16} {f"Tempo":^16}")
     print("-" * 64)
         
-    for i in [50, 100, 500, 1000, 5000]:
+    for i in [50, 100, 500, 1000, 2000]:
         print(f"{'Selection Sort':^16} {f"{i}":^16} {f"{mediaTempo(i, instanciaAleatoria, ord.selection_sort):.5f}s":^16}")
         print(f"{'Merge Sort':^16} {f"{i}":^16} {f"{mediaTempo(i, instanciaAlternada, ord.divide_and_conquer_sort):.5f}s":^16}")
         print(f"{'Quick Sort':^16} {f"{i}":^16} {f"{mediaTempo(i, instanciaReversa, ord.quick_sort):.5f}s":^16}")
