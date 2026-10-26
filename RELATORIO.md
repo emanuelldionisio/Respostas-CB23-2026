@@ -37,28 +37,43 @@ A resposta está no arquivo `fornecido/simulador.py`, as funções `p_real` e `c
 
 ### R5 — Previsão × medição (Etapa 3)
 
-Previsões registradas no commit: <!-- cole o hash curto do commit de previsões -->
+Previsões registradas no commit: 64fb65c8db686c8364611efc7e41cf95b8e196a4
 
 | Grandeza | Previsão | Medido |
 | --- | --- | --- |
-| Memória da lista / memória do `uint16` | 14 | |
-| Tempo do laço / tempo vetorizado | 50175 | |
-| Tempo da compreensão / tempo do laço | 1 | |
+| Memória da lista / memória do `uint16` | 14 | 18 |
+| Tempo do laço / tempo vetorizado | 50175 | 46.15 |
+| Tempo da compreensão / tempo do laço | 1 | 0.67 |
 
 <!-- Explique a maior diferença entre previsão e medição; por que uint16 * 20 dá 16364; que dtype você escolheria para contagens e para kPa. -->
+
+Para calcular `Memória da lista / memória` do `uint16`, a previsão considerou que um inteiro padrão ocupa 28 bytes e um uint16 ocupa 2 bytes, resultando em uma razão de 14. No entanto, a medição real mostrou que a lista ocupa mais memória devido aos metadados e a estrutura interna de armazenamento de objetos em Python, resultando em uma razão de 18. A expressão `uint16 * 20` resulta em 16364 porque o valor máximo de um uint16 é 65535, e ao multiplicar por 20, ocorre um estouro de valor, retornando o resultado modulado pelo tamanho do tipo. Para contagens, eu escolheria `uint16`, pois é suficiente para os valores esperados e economiza memória. Para kPa, eu escolheria `float32`, pois oferece precisão suficiente para medições de pressão sem desperdiçar memória.
+
+Para calcular `Tempo do laço / tempo vetorizado`, considerei que o laço iterativo processa cada elemento individualmente em complexidade O(n), enquanto a operação vetorizada utiliza otimizações internas e processamento em lote, o que considerei aproximadanete O(log n). A medição real mostrou que o tempo vetorizado demorou menos do que o previsto. O meu erro foi não considerar a complexidade real das operações vetorizadas, que são também O(n) mas com constantes muito menores devido à otimização interna.
+
+Para calcular `Tempo da compreensão / tempo do laço`, considerei que a compreensão de listas e o tempo do laço ambos rodam em O(n), então apenas se diferenciam por uma constante (que aproximei para perto de 1). A medição real mostrou que a compreensão de listas foi mais rápida do que o laço, com uma razão de 0.67. O meu erro foi não considerar que a compreensão de listas é otimizada internamente em Python, resultando em um desempenho melhor do que o laço explícito.
 
 ### R6 — Tipos da SerieTemporal (Etapa 4d)
 
 | Expressão | Tipo previsto | Tipo observado |
 | --- | --- | --- |
-| `s + s` | SerieTemporal | |
-| `s[1:]` | SerieTemporal | |
-| `s * 2` | SerieTemporal | |
-| `s.sum()` | float | |
-| `s[0]` | np.float64 | |
+| `s + s` | SerieTemporal | SerieTemporal |
+| `s[1:]` | SerieTemporal | SerieTemporal |
+| `s * 2` | SerieTemporal | SerieTemporal |
+| `s.sum()` | float | SerieTemporal |
+| `s[0]` | np.float64 | np.float64 |
 
 <!-- Explique o resultado que mais surpreendeu você. -->
+
+O `s.sum()` retornou um tipo `SerieTemporal` em vez de `float`, o que foi surpreendente. Isso ocorreu porque a implementação da classe `SerieTemporal` não sobrescreveu corretamente o método `sum()` para retornar um valor escalar, mas sim retornou uma nova instância da própria classe. Isso indica que a operação de soma foi tratada como uma operação de agregação que mantém a estrutura da série, em vez de reduzir os dados a um único valor.
 
 ### R7 — Issue #4
 
 <!-- Sintoma; o teste de regressão (nome); a causa, em termos da soma acumulada; a correção; por que os testes de aceitação não pegaram o defeito; mais um caso que eles não cobrem e qual teste seu o cobre. -->
+
+Sintoma: `media_movel(30)` em uma série de 600 pontos devolvia 570 valores, mas o contrato exige 571 (`n - janela + 1`).
+Teste de regressão: `test_media_movel_janela_um_preserva_todos_os_elementos` e `test_media_movel_tem_tamanho_n_menos_janela_mais_um`.
+Causa: na soma de prefixos, faltava o zero inicial; sem ele, os cortes da soma acumulada ficavam deslocados e um resultado era perdido.
+Correção: usar `np.concatenate((np.zeros(1), np.cumsum(self)))` e então calcular `(cs[i + w] - cs[i]) / w` de forma vetorizada.
+Os testes de aceitação não pegaram porque não cobriam o caso crítico de janela 1, onde o erro aparece claramente.
+Caso extra não coberto por aceitação: a preservação do tamanho correto para janela arbitrária (ex.: 600 e 30), coberta por `test_media_movel_tem_tamanho_n_menos_janela_mais_um`.

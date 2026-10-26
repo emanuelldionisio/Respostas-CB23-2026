@@ -39,6 +39,7 @@ def etapa1(texto: str, verdade: dict) -> list:
     print("\n=== Etapa 1: leitura do log ===")
     # (a) Leia o log e imprima o número de registros válidos e de linhas inválidas.
     registros, invalidas = ler_log(texto)
+    print(f"Registros válidos: {len(registros)} | Linhas inválidas: {len(invalidas)}")
     assert len(invalidas) == verdade["invalidas"]
     assert len(registros) + len(invalidas) == verdade["linhas"]
     assert contagem_por_tag(registros) == verdade["registros_por_tag"]
@@ -50,8 +51,9 @@ def etapa1(texto: str, verdade: dict) -> list:
     assert por_nivel == verdade["por_nivel"]
 
     # (c) Some os pulsos de FT201 (com `serie`) e imprima o volume bombeado na hora (0,1 L/pulso).
-    
     total = serie(registros, "FT201", "pulsos").sum()
+    volume_litros = total * 0.1
+    print(f"Pulsos FT201: {total:.0f} | Volume bombeado: {volume_litros:.1f} L")
     assert total == verdade["pulsos_total"]
 
     # (d) valida_tag.
@@ -102,9 +104,9 @@ def etapa2(texto: str, registros: list, verdade: dict) -> None:
     #     (certos["PT102"]) e imprima ao lado de verdade["pressao_recalque"].
     media_contagens = np.mean([r.valores["contagens"] for r in registros if r.tag == "PT102" and "contagens" in r.valores and r.valores["contagens"] <= 2000])
     p_nominal = certos["PT102"](media_contagens)
+    print(f"PT102 nominal: {p_nominal:.2f} kPa | Conferência: {verdade['pressao_recalque']:.2f} kPa")
 
     assert abs(p_nominal - verdade["pressao_recalque"]) > 100
-
 
 def etapa3() -> None:
     """Etapa 3 — Memória e tempo (issue #3). Registre as previsões ANTES de rodar."""
@@ -115,13 +117,34 @@ def etapa3() -> None:
     # (a) Memória: imprima uma tabela com estrutura, bytes por elemento, bytes totais e a
     #     razão em relação à lista.
     memoria = medir_memoria(contagens)
-    _todo("3(a) tabela")
+    cabecalho = f"{'Estrutura':<12} {'B/elem':>12} {'Bytes totais':>14} {'Razão/lista':>14}"
+    print(cabecalho)
+    print("-" * len(cabecalho))
+
+    ordem = ["list", "array('H')", "uint16", "int32", "int64", "float32", "float64"]
+    bytes_lista = memoria["list"]
+    for nome in ordem:
+        total_bytes = memoria[nome]
+        bytes_por_elem = total_bytes / n
+        razao_lista = total_bytes / bytes_lista
+        print(f"{nome:<12} {bytes_por_elem:>12.3f} {total_bytes:>14d} {razao_lista:>14.3f}")
+    
     assert memoria["uint16"] == 2_000_000
     assert memoria["list"] > 10 * memoria["uint16"]
 
     # (b) Tempo: imprima uma tabela com o tempo (ms) e a aceleração em relação ao laço.
     tempos = medir_tempos(contagens, k=10)
-    _todo("3(b) tabela")
+    cabecalho_tempo = f"{'Método':<16} {'Tempo (ms)':>12} {'Aceleração':>12}"
+    print(cabecalho_tempo)
+    print("-" * len(cabecalho_tempo))
+
+    ordem_tempo = ["laço", "compreensão", "map+lambda", "vetorizado"]
+    tempo_laco = tempos["laço"]
+    for nome in ordem_tempo:
+        tempo_ms = tempos[nome] * 1000.0
+        aceleracao = tempo_laco / tempos[nome]
+        print(f"{nome:<16} {tempo_ms:>12.3f} {aceleracao:>12.3f}")
+
     assert tempos["laço"] / tempos["vetorizado"] >= 5
 
     # (c) Tipos e overflow: imprima os dois resultados.
@@ -137,11 +160,14 @@ def etapa4(registros: list) -> None:
     s = serie(registros, "PT102", "contagens")
 
     # (a) Imprima a média, o desvio (ddof=1) e a amplitude.
+    print(f"Média: {s.mean():.3f}, Desvio: {s.std(ddof=1):.3f}, Amplitude: {s.amplitude():.3f}")
     assert len(s) == 600 and s.amplitude() > 300
 
     # (b) Média móvel de 30 pontos: imprima o tamanho e os valores mínimo e máximo, ao lado
     #     dos mínimo e máximo da série.
     mm = s.media_movel(30)
+    print(f"Tamanho: {len(mm)}, Mínimo: {mm.min():.3f}, Máximo: {mm.max():.3f}")
+    print(f"Mínimo da série: {s.min():.3f}, Máximo da série: {s.max():.3f}")
     assert len(mm) == 571
 
     # (c) Médias por minuto (10 leituras de 6 s).
@@ -150,7 +176,11 @@ def etapa4(registros: list) -> None:
     assert math.isclose(float(por_minuto.mean()), float(s.mean()))
 
     # (d) Imprima o tipo (type(...).__name__) de s + s, s[1:], s * 2, s.sum() e s[0].
-    _todo("4(d)")
+    print(f"Tipo de s + s: {type(s + s).__name__}")
+    print(f"Tipo de s[1:]: {type(s[1:]).__name__}")
+    print(f"Tipo de s * 2: {type(s * 2).__name__}")
+    print(f"Tipo de s.sum(): {type(s.sum()).__name__}")
+    print(f"Tipo de s[0]: {type(s[0]).__name__}")
 
 
 def main(matricula: int = MATRICULA) -> None:
